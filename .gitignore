@@ -1,0 +1,21 @@
+# Ambiente virtual
+.venv/
+venv/
+
+# Credenciais
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+
+# PyCharm
+.idea/
+
+# Testes e cache
+.pytest_cache/
+.coverage
+
+# Logs
+*.log

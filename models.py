@@ -7,6 +7,7 @@ from sqlalchemy import (
     Text,
     DateTime,
     ForeignKey,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 
@@ -66,3 +67,27 @@ class Agendamento(Base):
     criado_em = Column(DateTime(timezone=True), default=agora_utc)
 
     cliente = relationship("Cliente", back_populates="agendamentos")
+
+class IdentidadeCanal(Base):
+    __tablename__ = "identidades_canais"
+
+    id = Column(Integer, primary_key=True)
+    cliente_id = Column(
+        Integer,
+        ForeignKey("clientes.id"),
+        nullable=False
+    )
+    canal = Column(String(30), nullable=False)
+    identificador = Column(String(150), nullable=False)
+    criado_em = Column(
+        DateTime(timezone=True),
+        default=agora_utc
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "canal",
+            "identificador",
+            name="uq_identidade_canal"
+        ),
+    )
