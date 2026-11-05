@@ -8,7 +8,12 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from sqlalchemy.orm import Session
 
-from agenda import listar_disponibilidade, criar_agendamento
+from agenda import (
+    listar_disponibilidade,
+    criar_agendamento,
+    listar_agendamentos_cliente,
+    cancelar_agendamento,
+)
 
 load_dotenv()
 client = OpenAI()
@@ -37,6 +42,16 @@ AGENDA
 - Se o horário ficar indisponível, explique e ofereça alternativas consultadas.
 - Interprete hoje, amanhã e dias da semana com a data local informada no contexto.
 - Não prometa verificação de feriados: o sistema ainda não os bloqueia.
+
+CANCELAMENTO
+- Quando o cliente solicitar cancelamento, consulte seus agendamentos ativos.
+- Se houver mais de um, identifique qual ele deseja cancelar.
+- Informe veículo, data e horário antes de solicitar confirmação.
+- Só execute cancelar_agendamento após confirmação explícita.
+- Só informe que o cancelamento foi realizado se a ferramenta retornar sucesso.
+- Um agendamento cancelado libera o horário para novas reservas.
+- Não afirme que consegue remarcar automaticamente: a ferramenta de remarcação ainda não existe.
+- Nunca tente cancelar agendamentos pertencentes a outros clientes.
 '''
 
 TOOLS = [
@@ -71,6 +86,40 @@ TOOLS = [
                 'descricao': {'type': ['string', 'null'], 'description': 'Motivo da avaliação ou null'},
             },
             'required': ['data', 'horario', 'veiculo', 'descricao'],
+            'additionalProperties': False,
+        },
+        'strict': True,
+    },
+
+    {
+        'type': 'function',
+        'name': 'listar_agendamentos_cliente',
+        'description': 'Consulta os agendamentos ativos e futuros do cliente atual.',
+        'parameters': {
+            'type': 'object',
+            'properties': {},
+            'required': [],
+            'additionalProperties': False,
+        },
+        'strict': True,
+    },
+    {
+        'type': 'function',
+        'name': 'cancelar_agendamento',
+        'description': (
+            'Cancela um agendamento do cliente atual. '
+            'Use somente após identificar o agendamento e '
+            'receber confirmação explícita do cancelamento.'
+        ),
+        'parameters': {
+            'type': 'object',
+            'properties': {
+                'agendamento_id': {
+                    'type': 'integer',
+                    'description': 'ID do agendamento a cancelar'
+                }
+            },
+            'required': ['agendamento_id'],
             'additionalProperties': False,
         },
         'strict': True,
@@ -118,7 +167,72 @@ def _executar_ferramenta(nome: str, argumentos: dict, db: Session, cliente_id: i
                 'data': argumentos['data'], 'horario': argumentos['horario'],
                 'veiculo': agendamento.veiculo,
             }
-        return {'erro': 'Ferramenta desconhecida'}
+
+        if nome == 'listar_agendamentos_cliente':
+            agendamentos = listar_agendamentos_cliente(
+                db, cliente_id
+            )
+
+            return {
+                'agendamentos': [
+                    {
+                        'id': item.id,
+                        'veiculo': item.veiculo,
+                        'data_hora': item.data_hora.astimezone(
+                            FUSO
+                        ).isoformat(),
+                        'status': item.status,
+                    }
+                    for item in agendamentos
+                ]
+            }
+
+        if nome == 'cancelar_agendamento':
+            agendamento = cancelar_agendamento(
+                db=db,
+                cliente_id=cliente_id,
+                agendamento_id=argumentos['agendamento_id'],
+            )
+
+            return {
+                'sucesso': True,
+                'agendamento_id': agendamento.id,
+                'status': agendamento.status,
+                'veiculo': agendamento.veiculo,
+            }
+
+        if nome == 'listar_agendamentos_cliente':
+            agendamentos = listar_agendamentos_cliente(
+                db, cliente_id
+            )
+
+            return {
+                'agendamentos': [
+                    {
+                        'id': item.id,
+                        'veiculo': item.veiculo,
+                        'data_hora': item.data_hora.astimezone(
+                            FUSO
+                        ).isoformat(),
+                        'status': item.status,
+                    }
+                    for item in agendamentos
+                ]
+            }
+
+        if nome == 'cancelar_agendamento':
+            agendamento = cancelar_agendamento(
+                db=db,
+                cliente_id=cliente_id,
+                agendamento_id=argumentos['agendamento_id'],
+            )
+
+            return {
+                'sucesso': True,
+                'agendamento_id': agendamento.id,
+                'status': agendamento.status,
+                'veiculo': agendamento.veiculo,
+            }
     except (ValueError, TypeError, KeyError) as exc:
         db.rollback()
         return {'sucesso': False, 'erro': str(exc)}

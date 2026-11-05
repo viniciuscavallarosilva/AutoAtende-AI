@@ -178,3 +178,48 @@ def criar_agendamento(
         db.rollback()
         raise
 
+def listar_agendamentos_cliente(db: Session, cliente_id: int):
+    agora = agora_local()
+
+    return db.scalars(
+        select(Agendamento)
+        .where(
+            Agendamento.cliente_id == cliente_id,
+            Agendamento.status.in_(STATUS_ATIVOS),
+            Agendamento.data_hora >= agora
+        )
+        .order_by(Agendamento.data_hora)
+    ).all()
+
+def cancelar_agendamento(
+        db: Session,
+        cliente_id: int,
+        agendamento_id: int
+):
+    agendamento = db.scalar(
+        select(Agendamento)
+        .where(
+            Agendamento.id == agendamento_id,
+            Agendamento.cliente_id == cliente_id,
+            Agendamento.status.in_(STATUS_ATIVOS),
+            Agendamento.data_hora >= agora_local()
+        )
+        .with_for_update()
+    )
+
+    if agendamento is None:
+        raise ValueError(
+            "Agendamento ativo e futuro não encontrado para este cliente"
+        )
+
+    agendamento.status = "cancelado"
+
+    try:
+        db.commit()
+        db.refresh(agendamento)
+        return agendamento
+    except Exception:
+        db.rollback()
+        raise
+
+
