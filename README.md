@@ -1,83 +1,114 @@
 # AutoAtende AI
 
-**AI-powered customer service and appointment scheduling assistant**
+**AI-powered customer service and appointment scheduling prototype**
 
-AutoAtende AI is a Python-based project that explores how AI agents can support customer service workflows, manage conversations, and interact with business systems.
+AutoAtende AI is a Python-based prototype designed to automate customer interactions for a fictional automotive repair shop.
 
-The current prototype simulates an automotive repair shop, allowing customers to communicate with an AI assistant through Telegram and request vehicle inspection appointments.
+The project demonstrates how an AI agent can interact with customers through messaging platforms, maintain conversational context, and execute business operations such as checking appointment availability and creating bookings.
 
-The project was developed as a hands-on exercise in AI agents, backend development, database integration, and cloud deployment.
+## Features
 
-## Tech Stack
+- AI-powered customer service using the OpenAI API
+- WhatsApp integration through Meta's WhatsApp Cloud API
+- Telegram bot integration
+- Appointment scheduling and availability checks
+- Conversation history and customer data persistence
+- Business rules for appointment scheduling
+- REST API built with FastAPI
+- PostgreSQL database integration
+- Cloud deployment using Railway
 
-- **Python** for application development
-- **FastAPI** for backend API development
-- **OpenAI API** for natural language understanding and conversational responses
-- **PostgreSQL** for persistent data storage
-- **SQLAlchemy** for database operations
-- **Telegram Bot API** for customer interaction
-- **Railway** for cloud hosting and deployment
-- **Git and GitHub** for version control
+## Technology Stack
 
-## Current Features
-
-- AI-powered customer service through Telegram
-- Context-aware conversations
-- Customer and conversation management
-- Vehicle inspection appointment scheduling
-- Appointment availability checks
-- Appointment listing and cancellation
-- Persistent storage using PostgreSQL
-- Cloud deployment independent of the local development environment
+- Python
+- FastAPI
+- OpenAI API
+- PostgreSQL
+- SQLAlchemy
+- WhatsApp Cloud API
+- python-telegram-bot
+- Railway
 
 ## Architecture
 
-The application integrates a messaging channel with an AI-powered backend and a relational database.
-
 ```text
-Customer
-   |
-Telegram Bot
-   |
-Python Application
-   |
-AI Agent (OpenAI API)
-   |
-Business Logic
-   |
-PostgreSQL
+WhatsApp / Telegram / REST API
+              |
+              v
+       FastAPI Backend
+              |
+              v
+     Customer Service Logic
+          /       \
+         v         v
+    OpenAI API   PostgreSQL
 ```
 
-The application is hosted on Railway, allowing the bot and database to operate without requiring a local development machine.
+## Local Setup
 
-## Project Status
+1. Clone the repository.
+2. Create a Python virtual environment.
+3. Install the project dependencies.
+4. Configure a PostgreSQL database.
+5. Create a `.env` file with the required credentials.
+6. Initialize the database schema.
+7. Start the FastAPI application.
 
-**Functional prototype, under active development.**
+```bash
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
 
-The initial Telegram integration, cloud deployment, and database initialization have been completed.
+### Environment Variables
 
-The project is not yet intended for production use with real customer data.
+The project requires environment variables for its integrations.
 
-## Next Steps
+```dotenv
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4.1-mini
 
-- Implement transactional appointment rescheduling
-- Improve error handling and validation
-- Expand automated testing
-- Integrate WhatsApp Business Platform
-- Introduce database migrations
-- Improve deployment automation and monitoring
-- Add documentation and demonstration materials
+DATABASE_URL=
 
-## Motivation
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_ENABLED=false
 
-The goal of this project is to explore practical applications of AI agents beyond simple conversational interfaces.
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_BUSINESS_ACCOUNT_ID=
+WHATSAPP_VERIFY_TOKEN=
+WHATSAPP_API_VERSION=v25.0
 
-By integrating an LLM with business rules, persistent data, and real communication channels, the project demonstrates how AI can become part of operational workflows.
+META_APP_SECRET=
+```
 
-The emphasis is on iterative development, building a working prototype, validating its behavior, and progressively improving reliability and architecture.
+Variable names and optional settings should be checked against the current source code before configuration.
 
-## Author
+### WhatsApp Configuration
 
-**Vinícius Cavallaro da Silva**
+To enable WhatsApp messaging, you need a Meta developer application, a configured WhatsApp Business Account, an API access token, and a publicly accessible webhook endpoint.
 
-Software Development | Product Management | AI Applications
+The webhook must be configured and subscribed to the appropriate message events in the Meta developer dashboard.
+
+### Telegram Configuration
+
+Create a bot through Telegram's BotFather, obtain its access token, and configure the corresponding environment variables.
+
+## Current Status
+
+This project is a functional prototype and is not yet intended as a production-ready commercial service.
+
+Planned improvements include:
+
+- Audio message transcription
+- Webhook event deduplication and idempotency
+- Improved appointment history management
+- Appointment editing
+- Holiday-aware scheduling
+- Enhanced error handling and monitoring
+- Cross-channel customer identity management
+
+## Purpose
+
+This project was created as a hands-on learning experience in AI agents, backend development, third-party API integrations, and cloud deployment.
+
+It is also intended to demonstrate practical software engineering skills through an end-to-end implementation.
