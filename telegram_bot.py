@@ -19,15 +19,10 @@ from database import SessionLocal
 
 load_dotenv()
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-
-if not TOKEN:
-    raise RuntimeError(
-        "TELEGRAM_BOT_TOKEN não configurado no .env"
-    )
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
 def atender_telegram(
@@ -45,6 +40,7 @@ def atender_telegram(
             canal="telegram",
             identificador_externo=telegram_id
         )
+
         return resultado.resposta
 
     finally:
@@ -55,10 +51,11 @@ async def iniciar(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-    await update.message.reply_text(
-        "Olá! Sou o AutoAtende AI, assistente virtual "
-        "da nossa oficina. Como posso ajudar?"
-    )
+    if update.message:
+        await update.message.reply_text(
+            "Olá! Sou o AutoAtende AI, assistente virtual "
+            "da nossa oficina. Como posso ajudar?"
+        )
 
 
 async def receber_mensagem(
@@ -95,8 +92,15 @@ async def receber_mensagem(
         )
 
 
-def main():
-    app = Application.builder().token(TOKEN).build()
+def criar_aplicacao_telegram():
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+
+    if not token:
+        raise RuntimeError(
+            "TELEGRAM_BOT_TOKEN não configurado"
+        )
+
+    app = Application.builder().token(token).build()
 
     app.add_handler(
         CommandHandler("start", iniciar)
@@ -111,10 +115,38 @@ def main():
         )
     )
 
-    print("AutoAtende AI conectado ao Telegram!")
-
-    app.run_polling()
+    return app
 
 
-if __name__ == "__main__":
-    main()
+async def iniciar_telegram(app):
+    await app.initialize()
+    await app.start()
+
+    try:
+        if app.updater is None:
+            raise RuntimeError(
+                "Updater do Telegram não disponível"
+            )
+
+        await app.updater.start_polling(
+            drop_pending_updates=False
+        )
+
+    except Exception:
+        await app.stop()
+        await app.shutdown()
+        raise
+
+    logger.info("AutoAtende AI conectado ao Telegram!")
+
+
+async def encerrar_telegram(app):
+    if app.updater and app.updater.running:
+        await app.updater.stop()
+
+    if app.running:
+        await app.stop()
+
+    await app.shutdown()
+
+    logger.info("Telegram encerrado corretamente.")

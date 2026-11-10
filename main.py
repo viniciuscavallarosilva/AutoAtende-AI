@@ -1,4 +1,7 @@
 
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -10,11 +13,38 @@ from database import get_db
 from schemas import ChatRequest, ChatResponse
 from webhook import router as whatsapp_router
 
+from telegram_bot import (
+    criar_aplicacao_telegram,
+    iniciar_telegram,
+    encerrar_telegram
+)
+
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    telegram_app = criar_aplicacao_telegram()
+
+    await iniciar_telegram(telegram_app)
+
+    try:
+        logger.info(
+            "AutoAtende AI iniciado com Telegram e FastAPI."
+        )
+
+        yield
+
+    finally:
+        await encerrar_telegram(telegram_app)
+
 
 app = FastAPI(
     title="AutoAtende AI",
     description="API para atendimento inteligente multicanal",
-    version="0.3.0"
+    version="0.4.0",
+    lifespan=lifespan
 )
 
 app.include_router(whatsapp_router)
@@ -70,6 +100,10 @@ def chat(
         )
 
     except Exception:
+        logger.exception(
+            "Erro inesperado no endpoint /chat"
+        )
+
         raise HTTPException(
             status_code=502,
             detail="Falha ao processar o atendimento"
