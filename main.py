@@ -1,7 +1,9 @@
 
+import os
 import logging
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -20,30 +22,51 @@ from telegram_bot import (
 )
 
 
+load_dotenv()
+
 logger = logging.getLogger(__name__)
+
+
+def telegram_habilitado() -> bool:
+    return os.getenv(
+        "TELEGRAM_ENABLED", "false"
+    ).strip().lower() in ("true", "1", "yes", "on")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    telegram_app = criar_aplicacao_telegram()
-
-    await iniciar_telegram(telegram_app)
+    telegram_app = None
 
     try:
+        if telegram_habilitado():
+            logger.info("Iniciando integração com Telegram...")
+
+            telegram_app = criar_aplicacao_telegram()
+            await iniciar_telegram(telegram_app)
+
+            logger.info("Telegram iniciado com sucesso.")
+        else:
+            logger.info(
+                "Telegram desativado por TELEGRAM_ENABLED."
+            )
+
         logger.info(
-            "AutoAtende AI iniciado com Telegram e FastAPI."
+            "AutoAtende AI iniciado. FastAPI e WhatsApp disponíveis."
         )
 
         yield
 
     finally:
-        await encerrar_telegram(telegram_app)
+        if telegram_app is not None:
+            logger.info("Encerrando integração com Telegram...")
+            await encerrar_telegram(telegram_app)
+            logger.info("Telegram encerrado.")
 
 
 app = FastAPI(
     title="AutoAtende AI",
     description="API para atendimento inteligente multicanal",
-    version="0.4.0",
+    version="0.4.1",
     lifespan=lifespan
 )
 
